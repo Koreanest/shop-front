@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import api from "@/lib/api";
 import type { MenuNode } from "@/types/menu";
 import "./header.css";
 
@@ -22,8 +22,8 @@ export default function Header({ isLogin, setIsLogin }: Props) {
   useEffect(() => {
     const fetchMenus = async () => {
       try {
-        const data = await apiFetch<MenuNode[]>("/nav-menus/tree");
-        setMenus(Array.isArray(data) ? data : []);
+        const res = await api.get<MenuNode[]>("/nav-menus/tree");
+        setMenus(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         console.error("menu load error", e);
       }
@@ -40,9 +40,7 @@ export default function Header({ isLogin, setIsLogin }: Props) {
 
   const logout = async () => {
     try {
-      await apiFetch<void>("/auth/logout", {
-        method: "POST",
-      });
+      await api.post("/auth/logout");
       setIsLogin(false);
       router.push("/");
       router.refresh();
