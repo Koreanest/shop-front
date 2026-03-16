@@ -1,38 +1,28 @@
-const API_ROOT = "http://localhost:9999";
+import axios from "axios";
+
+export const API_ROOT = "http://localhost:9999";
 export const API_BASE = `${API_ROOT}/api`;
 
-type ApiFetchOptions = RequestInit & {
-  skipJsonContentType?: boolean;
-};
+export const api = axios.create({
+  baseURL: API_BASE,
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { skipJsonContentType = false, headers, ...rest } = options;
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.response?.data ||
+      error?.message ||
+      "API 요청 중 오류가 발생했습니다.";
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    cache: "no-store",
-    ...rest,
-    headers: {
-      ...(skipJsonContentType ? {} : { "Content-Type": "application/json" }),
-      ...(headers ?? {}),
-    },
-  });
-
-  if (!res.ok) {
-    let message = `API 요청 실패: ${res.status}`;
-    try {
-      const text = await res.text();
-      if (text) message = text;
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
+    return Promise.reject(new Error(String(message)));
   }
+);
 
-  const contentType = res.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    return undefined as T;
-  }
-
-  return res.json() as Promise<T>;
-}
+export default api;

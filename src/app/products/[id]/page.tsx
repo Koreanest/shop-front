@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/include/Header";
 import Footer from "@/include/Footer";
-import { apiFetch } from "@/lib/api";
-import type { MeResponse } from "@/types/member";
+import api, { API_ROOT } from "@/lib/api";
 import type { ProductDetail } from "@/types/product";
-import "./product-detail.css";
+import "./page.css";
 
 export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
@@ -17,7 +16,7 @@ export default function ProductDetailPage() {
 
   const [isLogin, setIsLogin] = useState<boolean | null>(null);
   const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
+  const [selectedSkuId, setSelectedSkuId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,17 +28,18 @@ export default function ProductDetailPage() {
         setError(null);
 
         try {
-          await apiFetch<MeResponse>("/members/me");
+          await api.get("/members/me");
           setIsLogin(true);
         } catch {
           setIsLogin(false);
         }
 
-        const data = await apiFetch<ProductDetail>(`/products/${id}`);
+        const res = await api.get<ProductDetail>(`/products/${id}`);
+        const data = res.data;
         setProduct(data);
 
         if (data.sizes && data.sizes.length > 0) {
-          setSelectedSizeId(data.sizes[0].id);
+          setSelectedSkuId(data.sizes[0].id);
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : "상품 상세 조회 실패";
@@ -55,24 +55,38 @@ export default function ProductDetailPage() {
   }, [id]);
 
   const selectedSize = useMemo(() => {
-    return product?.sizes.find((size) => size.id === selectedSizeId) ?? null;
-  }, [product, selectedSizeId]);
+    return product?.sizes.find((size) => size.id === selectedSkuId) ?? null;
+  }, [product, selectedSkuId]);
+
+  const resolvedImageUrl = useMemo(() => {
+    if (!product?.imageUrl) return "/no-image.png";
+    if (product.imageUrl.startsWith("http")) return product.imageUrl;
+    return `${API_ROOT}${product.imageUrl}`;
+  }, [product]);
 
   const addToCart = async () => {
+    if (isLogin !== true) {
+      alert("로그인이 필요합니다.");
+      router.push("/login");
+      return;
+    }
+
     if (!selectedSize) {
       alert("사이즈를 선택하세요.");
+      return;
+    }
+
+    if ((selectedSize.stock ?? 0) < 1) {
+      alert("재고가 없습니다.");
       return;
     }
 
     try {
       setBusy(true);
 
-      await apiFetch("/cart/items", {
-        method: "POST",
-        body: JSON.stringify({
-          skuId: selectedSize.id,
-          quantity: 1,
-        }),
+      await api.post("/cart/items", {
+        skuId: selectedSize.id,
+        quantity: 1,
       });
 
       alert("장바구니에 담았습니다.");
@@ -84,26 +98,34 @@ export default function ProductDetailPage() {
     }
   };
 
-  const goToOrder = async () => {
+  const goToCart = async () => {
+    if (isLogin !== true) {
+      alert("로그인이 필요합니다.");
+      router.push("/login");
+      return;
+    }
+
     if (!selectedSize) {
       alert("사이즈를 선택하세요.");
+      return;
+    }
+
+    if ((selectedSize.stock ?? 0) < 1) {
+      alert("재고가 없습니다.");
       return;
     }
 
     try {
       setBusy(true);
 
-      await apiFetch("/cart/items", {
-        method: "POST",
-        body: JSON.stringify({
-          skuId: selectedSize.id,
-          quantity: 1,
-        }),
+      await api.post("/cart/items", {
+        skuId: selectedSize.id,
+        quantity: 1,
       });
 
       router.push("/cart");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "바로구매 처리 실패";
+      const message = e instanceof Error ? e.message : "장바구니 이동 처리 실패";
       alert(message);
     } finally {
       setBusy(false);
@@ -116,25 +138,20 @@ export default function ProductDetailPage() {
 
       <section className="product-detail-section">
         <div className="product-detail-back">
-          <Link href="/">← 홈으로</Link>
+          <Link href="/products">← 상품 목록으로</Link>
         </div>
 
         {loading ? (
-          <p>상품 상세 불러오는 중...</p>
+          <p className="product-detail-state">상품 상세 불러오는 중...</p>
         ) : error ? (
           <p className="product-detail-error">{error}</p>
         ) : !product ? (
-          <p>상품 정보를 찾을 수 없습니다.</p>
+          <p className="product-detail-state">상품 정보를 찾을 수 없습니다.</p>
         ) : (
           <>
             <div className="product-detail-layout">
               <div className="product-detail-visual">
-                {product.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={product.imageUrl} alt={product.title} />
-                ) : (
-                  <div className="product-detail-image-empty">이미지 없음</div>
-                )}
+                <img src={resolvedImageUrl} alt={product.title} />
               </div>
 
               <div className="product-detail-info">
@@ -149,7 +166,7 @@ export default function ProductDetailPage() {
                 </div>
 
                 <div className="product-detail-price">
-                  {product.price.toLocaleString()}원
+                  {Number(product.price ?? 0).toLocaleString()}원
                 </div>
 
                 <div className="product-detail-size-block">
@@ -162,15 +179,18 @@ export default function ProductDetailPage() {
                   ) : (
                     <div className="product-detail-size-list">
                       {product.sizes.map((size) => {
-                        const active = selectedSizeId === size.id;
+                        const active = selectedSkuId === size.id;
+                        const soldOut = (size.stock ?? 0) < 1;
+
                         return (
                           <button
                             key={size.id}
                             type="button"
                             className={`product-detail-size-btn ${
                               active ? "is-active" : ""
-                            }`}
-                            onClick={() => setSelectedSizeId(size.id)}
+                            } ${soldOut ? "is-disabled" : ""}`}
+                            onClick={() => setSelectedSkuId(size.id)}
+                            disabled={soldOut}
                           >
                             {size.size} / 재고 {size.stock}
                           </button>
@@ -185,18 +205,18 @@ export default function ProductDetailPage() {
                     type="button"
                     className="product-detail-btn product-detail-btn--ghost"
                     onClick={addToCart}
-                    disabled={busy}
+                    disabled={busy || !selectedSize || (selectedSize.stock ?? 0) < 1}
                   >
-                    {busy ? "처리 중..." : "장바구니"}
+                    {busy ? "처리 중..." : "장바구니 담기"}
                   </button>
 
                   <button
                     type="button"
                     className="product-detail-btn product-detail-btn--primary"
-                    onClick={goToOrder}
-                    disabled={busy}
+                    onClick={goToCart}
+                    disabled={busy || !selectedSize || (selectedSize.stock ?? 0) < 1}
                   >
-                    바로구매
+                    {busy ? "처리 중..." : "장바구니로 이동"}
                   </button>
                 </div>
 
@@ -231,15 +251,11 @@ export default function ProductDetailPage() {
                   />
                   <SpecCard
                     label="Balance"
-                    value={
-                      product.spec.balanceMm ? `${product.spec.balanceMm} mm` : "-"
-                    }
+                    value={product.spec.balanceMm ? `${product.spec.balanceMm} mm` : "-"}
                   />
                   <SpecCard
                     label="Length"
-                    value={
-                      product.spec.lengthIn ? `${product.spec.lengthIn} in` : "-"
-                    }
+                    value={product.spec.lengthIn ? `${product.spec.lengthIn} in` : "-"}
                   />
                   <SpecCard
                     label="Pattern Main"

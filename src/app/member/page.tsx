@@ -93,7 +93,7 @@ export default function Member() {
 
     try {
       await axios.post(
-        `${BACKEND_BASE_URL}/api/members/register`,
+        `${BACKEND_BASE_URL}/api/auth/register`,
         form,
         {
           headers: {

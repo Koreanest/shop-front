@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/include/Header";
 import Footer from "@/include/Footer";
-import { apiFetch } from "@/lib/api";
-import type { MeResponse } from "@/types/member";
+import api from "@/lib/api";
 import "./login.css";
 
 export default function LoginPage() {
@@ -20,7 +19,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkMe = async () => {
       try {
-        await apiFetch<MeResponse>("/members/me");
+        await api.get("/members/me");
         setIsLogin(true);
         router.replace("/");
       } catch {
@@ -42,10 +41,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      await apiFetch<void>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+      await api.post("/auth/login", { email, password });
 
       setIsLogin(true);
       router.push("/");

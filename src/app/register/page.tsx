@@ -1,168 +1,305 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Header from "@/include/Header";
-import Footer from "@/include/Footer";
-import { apiFetch } from "@/lib/api";
-import type { MeResponse } from "@/types/member";
-import "./register.css";
+import api, { API_ROOT } from "@/lib/api";
+import { Row, Col, Form } from "react-bootstrap";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGoogle, faInstagram, faFacebookF } from "@fortawesome/free-brands-svg-icons";
 
-export default function RegisterPage() {
+import {
+  PageContainer,
+  StyledCard,
+  LeftImage,
+  FormWrapper,
+  GenderLabel,
+  AddressGroup,
+  AddressButton,
+  SubmitButton,
+  SocialButton,
+  FooterLinks,
+  FooterLink,
+} from "@/styled/Member.styles";
+
+declare global {
+  interface Window {
+    daum: any;
+  }
+}
+
+type Gender = "male" | "female" | "other" | "";
+
+interface MemberForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  repeatPassword: string;
+  gender: Gender;
+  companyName: string;
+  position: string;
+  tel: string;
+  address: string;
+  detailAddress: string;
+}
+
+const BACKEND_BASE_URL = API_ROOT;
+
+export default function Member() {
   const router = useRouter();
 
-  const [isLogin, setIsLogin] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const [form, setForm] = useState({
-    name: "",
+  const [form, setForm] = useState<MemberForm>({
+    firstName: "",
+    lastName: "",
     email: "",
-    phone: "",
     password: "",
-    passwordConfirm: "",
+    repeatPassword: "",
+    gender: "",
+    companyName: "",
+    position: "",
+    tel: "",
+    address: "",
+    detailAddress: "",
   });
 
-  useEffect(() => {
-    const checkMe = async () => {
-      try {
-        await apiFetch<MeResponse>("/members/me");
-        setIsLogin(true);
-        router.replace("/");
-      } catch {
-        setIsLogin(false);
-      }
-    };
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    checkMe();
-  }, [router]);
+  const handleGenderChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({
+      ...prev,
+      gender: e.target.value as Gender,
+    }));
+  };
 
-  const onChange =
-    (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
-    };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (
-      !form.name.trim() ||
-      !form.email.trim() ||
-      !form.phone.trim() ||
-      !form.password.trim() ||
-      !form.passwordConfirm.trim()
-    ) {
-      alert("모든 항목을 입력하세요.");
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      alert("이름과 성을 입력하세요.");
       return;
     }
 
-    if (form.password !== form.passwordConfirm) {
-      alert("비밀번호 확인이 일치하지 않습니다.");
+    if (!form.email.trim()) {
+      alert("이메일을 입력하세요.");
+      return;
+    }
+
+    if (!form.password.trim() || !form.repeatPassword.trim()) {
+      alert("비밀번호를 입력하세요.");
+      return;
+    }
+
+    if (form.password !== form.repeatPassword) {
+      alert("비밀번호가 일치하지 않습니다");
       return;
     }
 
     try {
-      setLoading(true);
-
-      await apiFetch<void>("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-        }),
-      });
-
-      setIsLogin(true);
+      await api.post("/auth/register", form);
+      alert("회원가입 성공");
       router.push("/");
       router.refresh();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "회원가입 실패";
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "회원가입 중 오류 발생";
       alert(message);
-    } finally {
-      setLoading(false);
     }
   };
 
+  const handleAddressSearch = () => {
+    if (!window.daum || !window.daum.postcode) {
+      alert("주소 검색 스크립트 로딩 중입니다");
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: (data: any) => {
+        setForm((prev) => ({
+          ...prev,
+          address: data.address ?? "",
+        }));
+      },
+    }).open();
+  };
+
+  const socialLogin = (provider: string) => {
+    window.location.href = `${BACKEND_BASE_URL}/oauth2/authorization/${provider}`;
+  };
+
   return (
-    <main className="register-page">
-      <Header isLogin={isLogin} setIsLogin={setIsLogin} />
+    <PageContainer>
+      <script
+        src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
+        async
+      />
 
-      <section className="register-section">
-        <div className="register-card">
-          <div className="register-card__header">
-            <div className="register-card__eyebrow">CREATE ACCOUNT</div>
-            <h1 className="register-card__title">회원가입</h1>
-            <p className="register-card__desc">
-              계정을 만들고 라켓, 장바구니, 주문 기능을 이용하세요.
-            </p>
-          </div>
+      <StyledCard>
+        <StyledCard.Body className="p-0">
+          <Row>
+            <Col lg={5} className="d-none d-lg-block p-0">
+              <LeftImage />
+            </Col>
 
-          <form className="register-form" onSubmit={handleSubmit}>
-            <label className="register-field">
-              <span>이름</span>
-              <input
-                type="text"
-                value={form.name}
-                onChange={onChange("name")}
-                placeholder="이름 입력"
-              />
-            </label>
+            <Col lg={7}>
+              <FormWrapper>
+                <h1 className="h4 mb-4">Create an Account!</h1>
 
-            <label className="register-field">
-              <span>이메일</span>
-              <input
-                type="email"
-                value={form.email}
-                onChange={onChange("email")}
-                placeholder="example@email.com"
-              />
-            </label>
+                <Form onSubmit={handleSubmit}>
+                  <Row className="mb-2">
+                    <Col sm={6}>
+                      <Form.Control
+                        placeholder="이름"
+                        name="firstName"
+                        value={form.firstName}
+                        onChange={handleChange}
+                      />
+                    </Col>
+                    <Col sm={6}>
+                      <Form.Control
+                        placeholder="성"
+                        name="lastName"
+                        value={form.lastName}
+                        onChange={handleChange}
+                      />
+                    </Col>
+                  </Row>
 
-            <label className="register-field">
-              <span>휴대폰 번호</span>
-              <input
-                type="text"
-                value={form.phone}
-                onChange={onChange("phone")}
-                placeholder="010-0000-0000"
-              />
-            </label>
+                  <Form.Control
+                    className="mb-2"
+                    type="email"
+                    placeholder="이메일"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                  />
 
-            <label className="register-field">
-              <span>비밀번호</span>
-              <input
-                type="password"
-                value={form.password}
-                onChange={onChange("password")}
-                placeholder="비밀번호 입력"
-              />
-            </label>
+                  <Row className="mb-2">
+                    <Col sm={6}>
+                      <Form.Control
+                        type="password"
+                        placeholder="비밀번호"
+                        name="password"
+                        value={form.password}
+                        onChange={handleChange}
+                      />
+                    </Col>
+                    <Col sm={6}>
+                      <Form.Control
+                        type="password"
+                        placeholder="비밀번호 확인"
+                        name="repeatPassword"
+                        value={form.repeatPassword}
+                        onChange={handleChange}
+                      />
+                    </Col>
+                  </Row>
 
-            <label className="register-field">
-              <span>비밀번호 확인</span>
-              <input
-                type="password"
-                value={form.passwordConfirm}
-                onChange={onChange("passwordConfirm")}
-                placeholder="비밀번호 다시 입력"
-              />
-            </label>
+                  <div className="mb-3">
+                    <GenderLabel>성별 :</GenderLabel>
+                    {["male", "female", "other"].map((g) => (
+                      <Form.Check
+                        key={g}
+                        inline
+                        type="radio"
+                        label={g}
+                        name="gender"
+                        value={g}
+                        checked={form.gender === g}
+                        onChange={handleGenderChange}
+                      />
+                    ))}
+                  </div>
 
-            <button type="submit" className="register-submit" disabled={loading}>
-              {loading ? "가입 중..." : "회원가입"}
-            </button>
-          </form>
+                  <div className="d-flex mb-2">
+                    <Form.Control
+                      placeholder="회사명"
+                      name="companyName"
+                      value={form.companyName}
+                      onChange={handleChange}
+                    />
+                    <Form.Control
+                      className="mx-3"
+                      placeholder="직급"
+                      name="position"
+                      value={form.position}
+                      onChange={handleChange}
+                    />
+                    <Form.Control
+                      placeholder="전화번호"
+                      name="tel"
+                      value={form.tel}
+                      onChange={handleChange}
+                    />
+                  </div>
 
-          <div className="register-bottom">
-            <span>이미 계정이 있나요?</span>
-            <Link href="/login">로그인</Link>
-          </div>
-        </div>
-      </section>
+                  <AddressGroup>
+                    <Form.Control
+                      readOnly
+                      name="address"
+                      value={form.address}
+                    />
+                    <AddressButton
+                      type="button"
+                      onClick={handleAddressSearch}
+                    >
+                      주소검색
+                    </AddressButton>
+                  </AddressGroup>
 
-      <Footer />
-    </main>
+                  <Form.Control
+                    className="mt-2"
+                    placeholder="상세주소"
+                    name="detailAddress"
+                    value={form.detailAddress}
+                    onChange={handleChange}
+                  />
+
+                  <SubmitButton type="submit">
+                    회원가입
+                  </SubmitButton>
+                </Form>
+
+                <hr />
+
+                <SocialButton
+                  bg="#db4437"
+                  onClick={() => socialLogin("google")}
+                >
+                  <FontAwesomeIcon icon={faGoogle} />
+                  Register with Google
+                </SocialButton>
+
+                <SocialButton
+                  bg="#E1306c"
+                  onClick={() => socialLogin("instagram")}
+                >
+                  <FontAwesomeIcon icon={faInstagram} />
+                  Register with Instagram
+                </SocialButton>
+
+                <SocialButton
+                  bg="#1877f2"
+                  onClick={() => socialLogin("facebook")}
+                >
+                  <FontAwesomeIcon icon={faFacebookF} />
+                  Register with Facebook
+                </SocialButton>
+
+                <FooterLinks>
+                  <FooterLink href="/login">
+                    Already have an account? Login!
+                  </FooterLink>
+                </FooterLinks>
+              </FormWrapper>
+            </Col>
+          </Row>
+        </StyledCard.Body>
+      </StyledCard>
+    </PageContainer>
   );
 }

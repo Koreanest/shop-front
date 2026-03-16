@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/include/Header";
 import Footer from "@/include/Footer";
-import { apiFetch } from "@/lib/api";
-import type { MeResponse } from "@/types/member";
+import api, { API_ROOT } from "@/lib/api";
 import type { CartItem, CartResponse } from "@/types/cart";
 import "./cart.css";
 
@@ -17,31 +16,35 @@ export default function CartPage() {
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const loadCart = async () => {
-    await apiFetch<MeResponse>("/members/me");
-    setIsLogin(true);
-
-    const data = await apiFetch<CartResponse>("/cart");
-    setCart(data);
+    const res = await api.get<CartResponse>("/cart");
+    setCart(res.data);
   };
 
   useEffect(() => {
     const init = async () => {
       try {
         setLoading(true);
+        setPageError(null);
+
+        await api.get("/members/me");
+        setIsLogin(true);
+
         await loadCart();
-      } catch {
+      } catch (e) {
         setIsLogin(false);
-        alert("로그인이 필요합니다.");
-        router.push("/login");
+        const message =
+          e instanceof Error ? e.message : "장바구니를 불러오지 못했습니다.";
+        setPageError(message);
       } finally {
         setLoading(false);
       }
     };
 
     init();
-  }, [router]);
+  }, []);
 
   const updateQuantity = async (item: CartItem, nextQuantity: number) => {
     if (nextQuantity < 1) return;
@@ -49,12 +52,11 @@ export default function CartPage() {
     try {
       setBusyId(item.cartItemId);
 
-      const updated = await apiFetch<CartResponse>(`/cart/items/${item.cartItemId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ quantity: nextQuantity }),
+      const res = await api.patch<CartResponse>(`/cart/items/${item.cartItemId}`, {
+        quantity: nextQuantity,
       });
 
-      setCart(updated);
+      setCart(res.data);
     } catch (e) {
       const message = e instanceof Error ? e.message : "수량 수정 실패";
       alert(message);
@@ -67,11 +69,8 @@ export default function CartPage() {
     try {
       setBusyId(cartItemId);
 
-      const updated = await apiFetch<CartResponse>(`/cart/items/${cartItemId}`, {
-        method: "DELETE",
-      });
-
-      setCart(updated);
+      const res = await api.delete<CartResponse>(`/cart/items/${cartItemId}`);
+      setCart(res.data);
     } catch (e) {
       const message = e instanceof Error ? e.message : "상품 삭제 실패";
       alert(message);
@@ -99,6 +98,13 @@ export default function CartPage() {
 
         {loading ? (
           <p>장바구니를 불러오는 중...</p>
+        ) : isLogin === false ? (
+          <div className="cart-empty">
+            <p>{pageError || "로그인이 필요합니다."}</p>
+            <Link href="/login" className="cart-empty__link">
+              로그인하러 가기
+            </Link>
+          </div>
         ) : !cart || cart.items.length === 0 ? (
           <div className="cart-empty">
             <p>장바구니가 비어 있습니다.</p>
@@ -109,64 +115,70 @@ export default function CartPage() {
         ) : (
           <div className="cart-layout">
             <div className="cart-items">
-              {cart.items.map((item) => (
-                <div key={item.cartItemId} className="cart-item">
-                  <Link
-                    href={item.productId ? `/products/${item.productId}` : "#"}
-                    className="cart-item__image"
-                  >
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.productTitle ?? "상품"} />
-                    ) : (
-                      <span>이미지 없음</span>
-                    )}
-                  </Link>
+              {cart.items.map((item) => {
+                const imageSrc = item.imageUrl
+                  ? item.imageUrl.startsWith("http")
+                    ? item.imageUrl
+                    : `${API_ROOT}${item.imageUrl}`
+                  : "/no-image.png";
 
-                  <div className="cart-item__body">
-                    <div className="cart-item__sku">{item.skuCode || "SKU 없음"}</div>
-                    <div className="cart-item__title">{item.productTitle || "상품명 없음"}</div>
-                    <div className="cart-item__meta">
-                      사이즈 {item.size || "-"} · 재고 {item.stockQty}
-                    </div>
-
-                    <div className="cart-item__qty">
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item, item.quantity - 1)}
-                        disabled={busyId === item.cartItemId}
-                      >
-                        −
-                      </button>
-                      <span>{item.quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item, item.quantity + 1)}
-                        disabled={busyId === item.cartItemId}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="cart-item__price">
-                    <button
-                      type="button"
-                      className="cart-item__remove"
-                      onClick={() => removeItem(item.cartItemId)}
-                      disabled={busyId === item.cartItemId}
+                return (
+                  <div key={item.cartItemId} className="cart-item">
+                    <Link
+                      href={item.productId ? `/products/${item.productId}` : "#"}
+                      className="cart-item__image"
                     >
-                      삭제
-                    </button>
+                      <img src={imageSrc} alt={item.productTitle ?? "상품"} />
+                    </Link>
 
-                    <div className="cart-item__unit">
-                      단가 {item.unitPrice.toLocaleString()}원
+                    <div className="cart-item__body">
+                      <div className="cart-item__sku">{item.skuCode || "SKU 없음"}</div>
+                      <div className="cart-item__title">
+                        {item.productTitle || "상품명 없음"}
+                      </div>
+                      <div className="cart-item__meta">
+                        사이즈 {item.size || "-"} · 재고 {item.stockQty}
+                      </div>
+
+                      <div className="cart-item__qty">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item, item.quantity - 1)}
+                          disabled={busyId === item.cartItemId}
+                        >
+                          −
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item, item.quantity + 1)}
+                          disabled={busyId === item.cartItemId}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <div className="cart-item__line">
-                      {item.lineAmount.toLocaleString()}원
+
+                    <div className="cart-item__price">
+                      <button
+                        type="button"
+                        className="cart-item__remove"
+                        onClick={() => removeItem(item.cartItemId)}
+                        disabled={busyId === item.cartItemId}
+                      >
+                        삭제
+                      </button>
+
+                      <div className="cart-item__unit">
+                        단가 {item.unitPrice.toLocaleString()}원
+                      </div>
+                      <div className="cart-item__line">
+                        {item.lineAmount.toLocaleString()}원
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <aside className="cart-summary">
@@ -188,7 +200,7 @@ export default function CartPage() {
                 <strong>{summary.totalAmount.toLocaleString()}원</strong>
               </div>
 
-              <Link href="/order" className="cart-summary__primary">
+              <Link href="/orders" className="cart-summary__primary">
                 주문서 작성
               </Link>
 
