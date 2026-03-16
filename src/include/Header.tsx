@@ -1,158 +1,148 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button, Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+import type { MenuNode } from "@/types/menu";
 import "./header.css";
 
 type Props = {
-  onOpenModal: () => void;
   isLogin: boolean | null;
-  setIsLogin: (v: boolean) => void;
+  setIsLogin: (value: boolean) => void;
 };
 
-type MenuNode = {
-  id: number;
-  name: string;
-  path?: string | null;
-  children?: MenuNode[];
-};
-
-const API_BASE = "http://localhost:9999/api";
-
-export default function Header({ onOpenModal, isLogin, setIsLogin }: Props) {
-  const [menus, setMenus] = useState<MenuNode[]>([]);
+export default function Header({ isLogin, setIsLogin }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  const [menus, setMenus] = useState<MenuNode[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchMenus = async () => {
       try {
-        const res = await fetch(`${API_BASE}/nav-menus/tree`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setMenus(data);
+        const data = await apiFetch<MenuNode[]>("/nav-menus/tree");
+        setMenus(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error("menu load error", e);
       }
     };
+
     fetchMenus();
   }, []);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  const featuredMenus = useMemo(() => menus.slice(0, 6), [menus]);
+
   const logout = async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, {
+      await apiFetch<void>("/auth/logout", {
         method: "POST",
-        credentials: "include",
       });
       setIsLogin(false);
       router.push("/");
-    } catch (err) {
-      console.error("logout error:", err);
+      router.refresh();
+    } catch (e) {
+      console.error("logout error", e);
+      alert("로그아웃에 실패했습니다.");
     }
   };
 
-  if (isLogin === null) return null;
+  return (
+    <header className="site-header">
+      <div className="site-header__inner">
+        <div className="site-header__left">
+          <button
+            type="button"
+            className="menu-toggle"
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            ☰
+          </button>
 
-  // 🔥 재귀 렌더링 (slug path 그대로 사용)
-  const renderTree = (nodes: MenuNode[], depth = 0) => {
-    return nodes.map((node) => (
-      <div key={node.id} className={`mega-depth-${depth}`}>
-        <div className="mega-title">
-          {node.path ? (
-            <Link href={node.path} className="mega-link">
-              {node.name}
-            </Link>
-          ) : (
-            node.name
-          )}
+          <Link href="/" className="site-logo">
+            TENNIS SHOP
+          </Link>
         </div>
 
-        {node.children && node.children.length > 0 && (
-          <div className="mega-children">
-            {renderTree(node.children, depth + 1)}
-          </div>
-        )}
-      </div>
-    ));
-  };
+        <nav className="site-nav">
+          {featuredMenus.map((menu) => (
+            <Link
+              key={menu.id}
+              href={menu.path || "#"}
+              className="site-nav__link"
+            >
+              {menu.name}
+            </Link>
+          ))}
+        </nav>
 
-  const renderDropdown = (node: MenuNode) => (
-    <NavDropdown
-      key={node.id}
-      title={node.name}
-      id={`nav-${node.id}`}
-      className="mega-dropdown"
-    >
-      <div className="mega-menu">{renderTree(menus)}</div>
-    </NavDropdown>
-  );
+        <div className="site-header__right">
+          <Link href="/cart" className="site-action site-action--ghost">
+            장바구니
+          </Link>
 
-  return (
-    <Navbar bg="white" expand="lg" className="border-bottom">
-      <Container>
-        {/* 브랜드 */}
-        <Navbar.Brand as={Link} href="/" style={{ fontWeight: "600" }}>
-          My shop
-        </Navbar.Brand>
-
-        {/* 가운데 메뉴 */}
-        <Nav className="mx-auto">
-          {menus.map((m1) =>
-            (m1.children ?? []).length > 0 ? (
-              renderDropdown(m1)
-            ) : (
-              <Nav.Link key={m1.id} as={Link} href={m1.path ?? "#"}>
-                {m1.name}
-              </Nav.Link>
-            )
-          )}
-        </Nav>
-
-        {/* 오른쪽 버튼 */}
-        <div className="ms-auto d-flex align-items-center">
           {isLogin ? (
             <>
-              <Button
-                className="me-2"
-                variant="outline-dark"
-                onClick={() => router.push("/cart")}
-              >
-                장바구니
-              </Button>
-
-              <Button
-                className="me-2"
-                variant="outline-dark"
-                onClick={() => router.push("/orders")}
-              >
+              <Link href="/orders" className="site-action site-action--ghost">
                 주문
-              </Button>
-
-              <Button
-                className="me-2"
-                variant="outline-dark"
-                onClick={() => router.push("/admin")}
+              </Link>
+              <button
+                type="button"
+                className="site-action site-action--primary"
+                onClick={logout}
               >
-                관리자
-              </Button>
-
-              <Button variant="outline-dark" onClick={logout}>
                 로그아웃
-              </Button>
+              </button>
             </>
           ) : (
             <>
-              <Link href="/member" className="btn btn-outline-dark me-2">
+              <Link href="/register" className="site-action site-action--ghost">
                 회원가입
               </Link>
-              <Link href="/login" className="btn btn-outline-dark">
+              <Link href="/login" className="site-action site-action--primary">
                 로그인
               </Link>
             </>
           )}
         </div>
-      </Container>
-    </Navbar>
+      </div>
+
+      {menuOpen && (
+        <div className="mega-panel">
+          <div className="mega-panel__inner">
+            {menus.map((menu) => (
+              <div key={menu.id} className="mega-panel__column">
+                <div className="mega-panel__title">
+                  {menu.path ? (
+                    <Link href={menu.path} className="mega-panel__title-link">
+                      {menu.name}
+                    </Link>
+                  ) : (
+                    menu.name
+                  )}
+                </div>
+
+                <div className="mega-panel__children">
+                  {(menu.children ?? []).map((child) => (
+                    <Link
+                      key={child.id}
+                      href={child.path || "#"}
+                      className="mega-panel__item"
+                    >
+                      {child.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

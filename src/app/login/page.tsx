@@ -1,80 +1,113 @@
 "use client";
 
-import { useState } from "react";
-import * as S from "@/styled/Login.styles";
-import api from "@/lib/axios"; // 공통 axios
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Header from "@/include/Header";
+import Footer from "@/include/Footer";
+import { apiFetch } from "@/lib/api";
+import type { MeResponse } from "@/types/member";
+import "./login.css";
 
-export default function Login() {
+export default function LoginPage() {
+  const router = useRouter();
+
+  const [isLogin, setIsLogin] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const checkMe = async () => {
+      try {
+        await apiFetch<MeResponse>("/members/me");
+        setIsLogin(true);
+        router.replace("/");
+      } catch {
+        setIsLogin(false);
+      }
+    };
+
+    checkMe();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      alert("이메일과 비밀번호를 입력해 주세요!");
+    if (!email.trim() || !password.trim()) {
+      alert("이메일과 비밀번호를 입력하세요.");
       return;
     }
 
     try {
-      // ✅ 세션 로그인 (🔥 이 옵션이 핵심)
-      await api.post(
-        "/api/auth/login",
-        {
-          email,
-          password,
-        },
-        {
-          withCredentials: true, // ✅ 추가
-        }
-      );
+      setLoading(true);
 
-      alert("로그인 성공 🎉");
+      await apiFetch<void>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-      // ✅ Header 다시 마운트
-      window.location.href = "/";
-    } catch (err) {
-      console.error(err);
-      alert("로그인 실패! 이메일 또는 비밀번호를 확인해 주세요");
+      setIsLogin(true);
+      router.push("/");
+      router.refresh();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "로그인 실패";
+      alert(message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <S.Wrapper>
-      <S.Card>
-        <S.LeftImage />
-        <S.Right>
-          <S.Title>Welcome Back!</S.Title>
+    <main className="auth-page">
+      <Header isLogin={isLogin} setIsLogin={setIsLogin} />
 
-          <S.Form onSubmit={handleSubmit}>
-            <S.Input
-              type="email"
-              placeholder="Enter Email Address..."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+      <section className="auth-section">
+        <div className="auth-card">
+          <div className="auth-card__visual" />
 
-            <S.Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+          <div className="auth-card__content">
+            <div className="auth-card__eyebrow">MEMBER LOGIN</div>
+            <h1 className="auth-card__title">Welcome Back</h1>
+            <p className="auth-card__desc">
+              로그인하고 상품 조회, 장바구니, 주문까지 이어서 진행하세요.
+            </p>
 
-            <S.CheckboxWrapper>
-              <input type="checkbox" id="remember" />
-              <label htmlFor="remember">Remember Me</label>
-            </S.CheckboxWrapper>
+            <form className="auth-form" onSubmit={handleSubmit}>
+              <label className="auth-field">
+                <span>이메일</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="example@email.com"
+                />
+              </label>
 
-            <S.Button type="submit">Login</S.Button>
-          </S.Form>
+              <label className="auth-field">
+                <span>비밀번호</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="비밀번호 입력"
+                />
+              </label>
 
-          <S.Divider />
+              <button type="submit" className="auth-submit" disabled={loading}>
+                {loading ? "로그인 중..." : "로그인"}
+              </button>
+            </form>
 
-          <S.LinkText href="/forgot">Forgot Password?</S.LinkText>
-          <S.LinkText href="/member">Create an Account!</S.LinkText>
-        </S.Right>
-      </S.Card>
-    </S.Wrapper>
+            <div className="auth-bottom">
+              <span>아직 회원이 아니신가요?</span>
+              <Link href="/register">회원가입</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </main>
   );
 }

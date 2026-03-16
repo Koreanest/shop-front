@@ -1,0 +1,124 @@
+.auth-page {
+  min-height: 100vh;
+  background: #fafafa;
+}
+
+.auth-section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 56px 24px 80px;
+}
+
+.auth-card {
+  max-width: 1080px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 28px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+}
+
+.auth-card__visual {
+  min-height: 640px;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("https://images.unsplash.com/photo-1542144582-1ba00456b5e3?q=80&w=1200&auto=format&fit=crop")
+      center/cover no-repeat;
+}
+
+.auth-card__content {
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-card__eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  color: #777;
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
+}
+
+.auth-card__title {
+  margin: 0 0 10px;
+  font-size: 38px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.auth-card__desc {
+  margin: 0 0 28px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-field {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-field span {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+}
+
+.auth-field input {
+  width: 100%;
+  height: 54px;
+  border-radius: 16px;
+  border: 1px solid #ddd;
+  padding: 0 16px;
+  font-size: 15px;
+  background: #fff;
+  outline: none;
+}
+
+.auth-submit {
+  width: 100%;
+  height: 56px;
+  margin-top: 8px;
+  border-radius: 18px;
+  border: none;
+  background: #111;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-bottom {
+  margin-top: 18px;
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-bottom a {
+  color: #111;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 992px) {
+  .auth-card {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card__visual {
+    min-height: 280px;
+  }
+}
