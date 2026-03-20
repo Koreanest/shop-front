@@ -50,16 +50,16 @@ Home → Product List → Product Detail → Cart → Checkout → Order
 ---
 ## Shop System Architecture
 
-<img src="./docs/shop_sys_arch.png" width="100%"/>
+<img src="./docs/shop_sys_arch.png" width="800"/>
 
 ## Shop Flow Diagram
 
-<img src="./docs/shop_flow_dg.png" width="100"/>
+<img src="./docs/shop_flow_dg.png" width="800"/>
 
 ---
 ## Shop ERD
 
-<img src="./docs/shop_erd.png" width="100%"/>
+<img src="./docs/shop_erd.png" width="800"/>
 
 ---
 ##  Key Points
