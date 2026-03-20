@@ -34,11 +34,9 @@ ERP / MES와 연결되는 주문 생성 시스템으로 설계되었습니다.
 
 ## Screens
 
-```text
 Home → Product List → Product Detail → Cart → Checkout → Order
 
 ---
-
 ## Core Flow
 
 1. 상품 조회
