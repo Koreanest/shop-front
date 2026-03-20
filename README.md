@@ -54,7 +54,7 @@ Home → Product List → Product Detail → Cart → Checkout → Order
 
 ## Shop Flow Diagram
 
-<img src="./docs/shop_flow_arch.png" width="1200"/>
+<img src="./docs/shop_flow_dg.png" width="1200"/>
 
 ---
 ## Shop ERD
