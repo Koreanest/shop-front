@@ -76,8 +76,16 @@
   color: #374151;
 }
 
-.order-cancel-button {
+/* 🔵 버튼들을 가로로 나란히 배치하는 그룹 */
+.order-action-group {
   margin-top: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+/* 🔵 취소 버튼과 구매 버튼의 공통 스타일 (크기, 둥글기, 폰트 완전 동일) */
+.order-cancel-button,
+.order-purchase-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -86,14 +94,16 @@
   padding: 0 18px;
   border: 0;
   border-radius: 12px;
-  background: #dc2626;
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+/* 🔴 주문 취소 버튼 개별 색상 (빨간색) */
+.order-cancel-button {
+  background: #dc2626;
 }
 
 .order-cancel-button:hover:not(:disabled) {
@@ -103,6 +113,16 @@
 .order-cancel-button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+/* 🔵 구매 버튼 개별 색상 (파란색) */
+.order-purchase-button {
+  background: #2563eb;
+}
+
+.order-purchase-button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .order-item-list {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams ,useRouter} from "next/navigation";
 import Header from "@/include/Header";
 import Footer from "@/include/Footer";
 import api from "@/lib/api";
@@ -21,6 +21,7 @@ function canCancel(status: OrderStatus) {
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = Number(params?.id);
+  const router = useRouter();
 
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,16 +136,49 @@ export default function OrderDetailPage() {
                 </div>
               </div>
 
-              {canCancel(order.status) && (
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={busy}
-                  className="order-cancel-button"
-                >
-                  {busy ? "취소 처리 중..." : "주문 취소"}
-                </button>
-              )}
+                          {/* --- 버튼 그룹 시작 --- */}
+<div className="order-action-group"> 
+  
+  {/* 주문 취소 버튼: 취소가 가능할 때만 보임 */}
+  {canCancel(order.status) && (
+    <button
+      type="button"
+      onClick={handleCancel}
+      disabled={busy}
+      className="order-cancel-button"
+    >
+      {busy ? "취소 처리 중..." : "주문 취소"}
+    </button>
+  )}
+
+  {/* 구매 버튼: 언제나 보이며 누르면 상품 목록으로 이동 */}
+ <button
+  type="button"
+  className="order-purchase-button"
+  onClick={async () => {
+    try {
+      // 1. 백엔드에 결제 완료 처리 요청 (4번 API) [cite: 11]
+      const response = await fetch(`/api/orders/${orderId}/pay`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        // 2. DB 상태가 PAID로 바뀐 후 알림창 표시 
+        alert("구매 완료 되었습니다.");
+        
+        // 3. 새로 만든 결제 완료 상세 페이지로 이동 
+        router.push(`/orders/${orderId}/pay`);
+      }
+    } catch (error) {
+      alert("결제 처리 중 오류가 발생했습니다.");
+    }
+  }}
+>
+  구매
+</button>
+  
+</div>
+{/* --- 버튼 그룹 끝 --- */}
             </div>
 
             <div className="order-detail-card">

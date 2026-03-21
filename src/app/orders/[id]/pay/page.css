@@ -1,0 +1,46 @@
+/* app/orders/[id]/pay/page.css */
+
+.order-detail-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.order-detail-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* 결제 상태 배지 스타일 (중요!) */
+.order-status-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* PAID(결제완료)일 때 초록색 적용 */
+.order-status-badge--green {
+  background-color: #e6fffa;
+  color: #38a169;
+}
+
+.order-detail-info p {
+  margin: 10px 0;
+  line-height: 1.6;
+  color: #444;
+}
+
+.order-purchase-button {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.order-purchase-button:hover {
+  opacity: 0.9;
+}

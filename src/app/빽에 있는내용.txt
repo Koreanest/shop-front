@@ -1,0 +1,231 @@
+좋아, 이건 **그대로 복붙해서 팀원한테 던져도 되는 수준**으로 정리해줄게.
+(프론트가 바로 붙일 수 있게 “필드 기준 + API 기준”으로 정리)
+
+---
+
+# 📦 주문 API 스펙 (프론트 전달용)
+
+## 1. 주문 생성
+
+### ✅ API
+
+```
+POST /api/orders
+```
+
+### ✅ Request Body
+
+```json
+{
+  "receiverName": "홍길동",
+  "receiverPhone": "010-1234-5678",
+  "zip": "12345",
+  "address1": "서울시 강남구",
+  "address2": "101호",
+  "memo": "문앞에 놔주세요"
+}
+```
+
+---
+
+## 2. 주문 상세 조회 (⭐ 중요)
+
+### ✅ API
+
+```
+GET /api/orders/{id}
+```
+
+### ✅ Response
+
+```json
+{
+  "orderId": 1,
+  "orderNo": "ORD-20260317-000000001",
+  "status": "PENDING",
+  "totalPrice": 129000,
+
+  "receiverName": "홍길동",
+  "receiverPhone": "010-1234-5678",
+  "zip": "12345",
+  "address1": "서울시 강남구",
+  "address2": "101호",
+  "memo": "문앞에 놔주세요",
+
+  "items": [
+    {
+      "productName": "요넥스 라켓",
+      "unitPrice": 129000,
+      "quantity": 1,
+      "lineTotal": 129000
+    }
+  ]
+}
+```
+
+---
+
+# 🚨 핵심 규칙 (프론트 필수 확인)
+
+## ✅ 총 주문 금액
+
+```
+order.totalPrice
+```
+
+👉 화면 “총 합계”는 이 값 그대로 사용
+
+---
+
+## ✅ 주문 아이템
+
+| 필드        | 의미       |
+| --------- | -------- |
+| unitPrice | 개당 가격    |
+| quantity  | 수량       |
+| lineTotal | 해당 상품 총액 |
+
+👉 상품 합계는 `lineTotal` 사용
+
+---
+
+## ❌ 절대 사용하면 안되는 필드 (현재 없음)
+
+```
+item.price ❌
+item.totalPrice ❌
+```
+
+👉 이거 쓰면 지금처럼 “0원 문제” 발생
+
+---
+
+# 📋 3. 주문 목록
+
+### ✅ API
+
+```
+GET /api/orders
+```
+
+### ✅ Response
+
+```json
+[
+  {
+    "orderId": 1,
+    "orderNo": "ORD-20260317-000000001",
+    "status": "PENDING",
+    "totalPrice": 129000,
+    "receiverName": "홍길동",
+    "createdAt": "2026-03-17T10:20:30"
+  }
+]
+```
+
+---
+
+# 💳 4. 결제 처리
+
+### ✅ API
+
+```
+POST /api/orders/{id}/pay
+```
+
+### ✅ 설명
+
+* 호출 시 결제 성공 처리됨
+* 현재는 테스트 결제
+
+---
+
+# 🔄 5. 주문 상태 값
+
+```
+PENDING
+PAID
+PREPARING
+SHIPPED
+COMPLETED
+CANCELED
+```
+
+---
+
+# ❗ 상태 흐름
+
+```
+PENDING → PAID → PREPARING → SHIPPED → COMPLETED
+```
+
+---
+
+# ❗ 취소 가능 상태
+
+```
+PENDING
+PAID
+PREPARING
+```
+
+---
+
+# 📌 프론트 구현 기준 (중요)
+
+## 총 금액
+
+```ts
+order.totalPrice
+```
+
+## 상품 리스트
+
+```ts
+item.unitPrice
+item.quantity
+item.lineTotal
+```
+
+---
+
+# 🎯 지금 바로 해야 할 작업
+
+프론트 팀원 작업 순서:
+
+1. 주문 상세 페이지 수정
+   → totalPrice / lineTotal 기준으로 렌더링
+
+2. 장바구니 → 주문 생성 연결
+   → POST /api/orders
+
+3. 결제 버튼 연결
+   → POST /api/orders/{id}/pay
+
+4. 주문 목록 페이지 연결
+   → GET /api/orders
+
+---
+
+# ⚠️ 한 줄 요약
+
+👉 “가격은 totalPrice / lineTotal만 쓴다. 다른 필드는 없다.”
+
+---
+
+원하면 다음 단계로
+👉 checkout 페이지 / order 상세 UI까지 **프론트 코드까지 맞춰서 바로 짜줄게**
+
+---
+
+**Q1**
+
+프론트에서 주문 상세 페이지 UI를 totalPrice 중심으로 어떻게 구조 잡는 게 좋을까?
+
+**Q2**
+
+장바구니 → 주문 생성 → 결제까지 프론트 흐름을 한 번에 정리해줄 수 있을까?
+
+**Q3**
+
+카카오페이 붙일 걸 대비해서 pay API를 어떻게 확장 구조로 설계하는 게 좋을까?
