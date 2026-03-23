@@ -21,7 +21,7 @@ export default function () {
             </NavItem><br/>
 
             <NavItem>
-                <Link  href="/admin">Products</Link>
+                <Link  href="/admin/products">Products</Link>
             </NavItem><br/>
 
             <NavItem>
