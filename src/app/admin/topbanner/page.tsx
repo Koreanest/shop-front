@@ -14,7 +14,7 @@ import {
   H5,
   ContentInner,
   P,
-} from "@/styled/Admin.styles";
+} from "@/styled/Admin.styles";``
 
 /**
  * ✅ 배너 관리 (DB 연동 버전)

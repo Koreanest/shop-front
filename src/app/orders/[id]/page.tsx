@@ -88,19 +88,25 @@ export default function OrderDetailPage() {
   };
 
   // 결제 핸들러
-  const handlePayment = async () => {
-    try {
-      setBusy(true);
-      await api.patch(`/orders/${orderId}/status`, { status: "PAID" });
-      alert("결제가 완료되었습니다! 감사합니다.");
-      window.location.reload(); 
-    } catch (e) {
-      console.error("결제 API 에러:", e);
-      alert("결제 처리 중 문제가 발생했습니다.");
-    } finally {
-      setBusy(false);
-    }
-  };
+ const handlePayment = async () => {
+   try {
+     setBusy(true);
+
+     // ✅ 올바른 API
+     await api.post(`/orders/${orderId}/pay`);
+
+     alert("결제가 완료되었습니다!");
+
+     // ✅ 결제 완료 페이지 이동
+     router.push(`/orders/${orderId}/pay`);
+
+   } catch (e: any) {
+     console.error("결제 API 에러:", e.response?.data || e.message);
+     alert(e.response?.data?.message || "결제 처리 중 문제가 발생했습니다.");
+   } finally {
+     setBusy(false);
+   }
+ };
 
   return (
     <main className="order-detail-page">
